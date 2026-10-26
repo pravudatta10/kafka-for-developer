@@ -5,10 +5,13 @@
   <groupId>com.pravudatta.kafka</groupId>
   <artifactId>kafka-for-developer</artifactId>
   <version>1.0</version>
-  <packaging>jar</packaging>
+  <packaging>pom</packaging>
 
   <name>kafka-for-developer</name>
   <url>http://maven.apache.org</url>
+  <modules>
+    <module>kafka-basics</module>
+  </modules>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
