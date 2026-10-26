@@ -1,0 +1,108 @@
+  # ============================================================
+  # Kafka for Developer - Local Learning Environment
+  # ============================================================
+  # Kafka: Confluent Platform 7.6.0
+  # Mode: KRaft (no ZooKeeper)
+  # UI: Kafbat UI
+  #
+  # Windows / IntelliJ Kafka address: localhost:19092
+  # Kafbat UI: http://localhost:9999
+  # Kafka address inside Docker network: kafka-broker:9092
+  # ============================================================
+
+  services:
+
+    # ----------------------------------------------------------
+    # Kafka Broker
+    # Single-node Kafka broker and KRaft controller
+    # ----------------------------------------------------------
+    kafka-broker:
+      image: confluentinc/cp-kafka:7.6.0
+      container_name: kafka-for-developer-broker
+      hostname: kafka-broker
+      restart: unless-stopped
+
+      ports:
+        - "19092:19092"
+
+      environment:
+        # KRaft configuration
+        KAFKA_NODE_ID: 1
+        KAFKA_PROCESS_ROLES: "broker,controller"
+        KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-broker:9093"
+
+        # Kafka listeners
+        KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:19092"
+
+        # Addresses advertised to clients
+        KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-broker:9092,EXTERNAL://localhost:19092"
+
+        # Listener security protocols
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+
+        KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+        KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+        # Single-broker replication settings for learning
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+        KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+        KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+        KAFKA_MIN_INSYNC_REPLICAS: 1
+
+        # KRaft cluster ID
+        CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+
+      volumes:
+        # Docker-managed persistent storage
+        - kafka-data:/var/lib/kafka/data
+
+      networks:
+        - kafka-learning-network
+
+      healthcheck:
+        test:
+          - CMD-SHELL
+          - kafka-broker-api-versions --bootstrap-server localhost:9092
+        interval: 10s
+        timeout: 5s
+        retries: 12
+        start_period: 20s
+
+    # ----------------------------------------------------------
+    # Kafbat UI
+    # Browser interface for inspecting Kafka
+    # ----------------------------------------------------------
+    kafbat-ui:
+      image: ghcr.io/kafbat/kafka-ui:latest
+      container_name: kafka-for-developer-ui
+      restart: unless-stopped
+
+      ports:
+        - "9999:8080"
+
+      environment:
+        DYNAMIC_CONFIG_ENABLED: "true"
+        KAFKA_CLUSTERS_0_NAME: "Kafka for Developer"
+        KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka-broker:9092"
+
+      depends_on:
+        kafka-broker:
+          condition: service_healthy
+
+      networks:
+        - kafka-learning-network
+
+  # ------------------------------------------------------------
+  # Docker Network
+  # ------------------------------------------------------------
+  networks:
+    kafka-learning-network:
+      name: kafka-for-developer-network
+      driver: bridge
+
+  # ------------------------------------------------------------
+  # Docker-managed Kafka storage
+  # ------------------------------------------------------------
+  volumes:
+    kafka-data:
